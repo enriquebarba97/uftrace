@@ -35,6 +35,19 @@ static void print_duration(struct field_data *fd)
 	print_time_unit(d);
 }
 
+static void print_raw_duration(struct field_data *fd)
+{
+	struct uftrace_fstack *fstack = fd->fstack;
+	void *arg = fd->arg;
+	uint64_t d = 0;
+
+	/* any non-NULL argument suppresses the output */
+	if (fstack && arg == NULL)
+		d = fstack->total_time;
+
+	pr_out("%" PRIu64, d);
+}
+
 static void print_tid(struct field_data *fd)
 {
 	struct uftrace_task_reader *task = fd->task;
@@ -83,6 +96,14 @@ static void print_elapsed(struct field_data *fd)
 	print_time_unit(elapsed);
 }
 
+static void print_raw_elapsed(struct field_data *fd)
+{
+	struct uftrace_task_reader *task = fd->task;
+	uint64_t elapsed = task->timestamp - task->h->time_range.first;
+
+	pr_out("%" PRIu64, elapsed);
+}
+
 static void print_task(struct field_data *fd)
 {
 	struct uftrace_task_reader *task = fd->task;
@@ -125,6 +146,15 @@ static struct display_field field_duration = {
 	.header = " DURATION ",
 	.length = 10,
 	.print = print_duration,
+	.list = LIST_HEAD_INIT(field_duration.list),
+};
+
+static struct display_field field_raw_duration = {
+	.id = REPLAY_F_DURATION,
+	.name = "rawDuration",
+	.header = " DURATION ",
+	.length = 10,
+	.print = print_raw_duration,
 	.list = LIST_HEAD_INIT(field_duration.list),
 };
 
@@ -178,6 +208,15 @@ static struct display_field field_elapsed = {
 	.list = LIST_HEAD_INIT(field_elapsed.list),
 };
 
+static struct display_field field_raw_elapsed = {
+	.id = REPLAY_F_ELAPSED,
+	.name = "rawElapsed",
+	.header = "  ELAPSED ",
+	.length = 10,
+	.print = print_raw_elapsed,
+	.list = LIST_HEAD_INIT(field_elapsed.list),
+};
+
 static struct display_field field_task = {
 	.id = REPLAY_F_TASK,
 	.name = "task",
@@ -198,8 +237,8 @@ static struct display_field field_module = {
 
 /* index of this table should be matched to display_field_id */
 static struct display_field *field_table[] = {
-	&field_duration, &field_tid,	 &field_addr, &field_time,
-	&field_delta,	 &field_elapsed, &field_task, &field_module,
+	&field_duration, &field_raw_duration, &field_tid,	 &field_addr, &field_time,
+	&field_delta,	 &field_elapsed, &field_raw_elapsed, &field_task, &field_module,
 };
 
 static void print_field(struct uftrace_task_reader *task, struct uftrace_fstack *fstack, void *arg)
